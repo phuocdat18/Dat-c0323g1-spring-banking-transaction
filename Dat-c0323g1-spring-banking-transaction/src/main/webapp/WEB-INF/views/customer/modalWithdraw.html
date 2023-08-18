@@ -1,0 +1,52 @@
+<th:block th:fragment="modalWithdraw">
+  <div class="modal fade" id="mdWithdraw" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="exampleModalLabel">Modal Withdraw</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="error-area hide"></div>
+          <form class="withdrawForm">
+            <div class="row mb-3">
+              <div class="row">
+                <div>
+                  <input type="hidden" id="idUp" readonly>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-lg-6">
+                  <label for="fullNameWith">FullName</label>
+                  <input type="text" id="fullNameWith" class="form-control" readonly>
+                </div>
+                <div class="col-lg-6">
+                  <label for="emailWith">Email</label>
+                  <input type="email" id="emailWith" class="form-control" readonly>
+                </div>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-lg-6">
+                <label for="transactionAmountWith" class="form-label">Amount Withdraw</label>
+                <input type="text" id="transactionAmountWith" class="form-control"
+                       name="transactionAmountWith">
+              </div>
+              <div class="col-lg-6">
+                <label for="balanceWith" class="form-label">Balance</label>
+                <input type="text" class="form-control" id="balanceWith" name="balanceWith" readonly>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" id="btnWithdraw" class="btn btn-outline-primary">
+            <i class="fas fa-exchange-alt"></i>
+            Withdraw
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</th:block>

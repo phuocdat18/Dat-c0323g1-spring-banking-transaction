@@ -1,0 +1,32 @@
+.container-fluid {
+    --bs-gutter-x: 0
+}
+
+header .container-fluid {
+    padding: 0 20px;
+}
+
+.navbar {
+    height: 80px;
+}
+
+.bg-navbar {
+    background-color: #299be4;
+    color: #fff;
+}
+
+.d-flex {
+    gap: 5px;
+}
+
+table thead tr th {
+    background-color: #4caf50 !important;
+    color: #fff !important;
+}
+
+.toastContainer.toastmiddlecenter {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
