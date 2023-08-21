@@ -3,9 +3,13 @@ package com.cg.service.customer;
 import com.cg.model.Customer;
 import com.cg.model.Deposit;
 import com.cg.model.LocationRegion;
+import com.cg.model.dto.CustomerDTO;
+import com.cg.model.dto.CustomerReqDTO;
+import com.cg.model.dto.CustomerResDTO;
 import com.cg.repository.ICustomerRepository;
 import com.cg.repository.IDepositRepository;
 import com.cg.repository.ILocationRegionRepository;
+import com.cg.service.locationRegion.ILocationRegionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +26,7 @@ public class CustomerServiceImpl implements ICustomerService {
     private ICustomerRepository customerRepository;
 
     @Autowired
-    private ILocationRegionRepository locationRegionRepository;
+    private ILocationRegionService locationRegionService;
 
     @Autowired
     private IDepositRepository depositRepository;
@@ -39,9 +43,14 @@ public class CustomerServiceImpl implements ICustomerService {
     }
 
     @Override
+    public List<CustomerResDTO> findAllCustomerResDTO(Boolean deleted) {
+        return customerRepository.findAllCustomerResDTO(deleted);
+    }
+
+    @Override
     public Customer create(Customer customer) {
         LocationRegion locationRegion = customer.getLocationRegion();
-        locationRegionRepository.save(locationRegion);
+        locationRegionService.save(locationRegion);
 
         customer.setLocationRegion(locationRegion);
         customer.setBalance(BigDecimal.ZERO);
@@ -57,13 +66,26 @@ public class CustomerServiceImpl implements ICustomerService {
         Long customerId = deposit.getCustomer().getId();
         BigDecimal transactionAmount = deposit.getTransactionAmount();
         customerRepository.incrementBalance(customerId, transactionAmount);
+    }
 
-//        BigDecimal currentBalance = customer.getBalance();
+    @Override
+    public Optional<CustomerDTO> findCustomerDTOById(Long id) {
+        return customerRepository.findCustomerDTOById(id);
+    }
 
-//        BigDecimal newBalance = currentBalance.add(transactionAmount);
-//        customer.setBalance(currentBalance);
-//        customerRepository.save(customer);
+    @Override
+    public CustomerResDTO saveUpdatedCustomerFromDTO(CustomerReqDTO customerReqDTO, CustomerDTO customerDTO) {
+        LocationRegion locationRegion = customerReqDTO.getLocationRegionReqDTO().toLocationRegion(null);
 
+        locationRegion.setId(customerDTO.getLocationRegionDTO().getId());
+
+        locationRegionService.save(locationRegion);
+
+        Customer newCustomer = customerReqDTO.toCustomer(customerDTO.getId(), customerDTO.getBalance());
+
+        newCustomer.setLocationRegion(locationRegion);
+
+        return save(newCustomer).toCustomerResDTO();
     }
 
     @Override

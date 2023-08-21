@@ -1,10 +1,10 @@
 package com.cg.api;
 
 import com.cg.exception.DataInputException;
+import com.cg.exception.EmailExistsException;
 import com.cg.model.Customer;
 import com.cg.model.Deposit;
-import com.cg.model.dto.CustomerResDTO;
-import com.cg.model.dto.DepositReqDTO;
+import com.cg.model.dto.*;
 import com.cg.service.customer.ICustomerService;
 import com.cg.service.deposit.IDepositService;
 import com.cg.utils.AppUtils;
@@ -16,7 +16,9 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -36,11 +38,17 @@ public class CustomerApi {
     private ValidateUtils validateUtils;
 
     @GetMapping
-    public ResponseEntity<List<Customer>> getAllCustomers() {
+    public ResponseEntity<?> getAllCustomers() {
+        List<CustomerResDTO> customerResDTOS = customerService.findAllCustomerResDTO(false);
 
-        List<Customer> customers = customerService.findAll();
+        if (customerResDTOS.size() == 0) {
+            Map<String, String> result = new HashMap<>();
+            result.put("message", "Không có khách hàng trong danh sách");
 
-        return new ResponseEntity<>(customers, HttpStatus.OK);
+            return new ResponseEntity<>(result, HttpStatus.OK);
+        }
+
+        return new ResponseEntity<>(customerResDTOS, HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
@@ -66,50 +74,71 @@ public class CustomerApi {
         return new ResponseEntity<>(newCustomer, HttpStatus.CREATED);
     }
 
-//    @PostMapping("/deposit")
-//    public ResponseEntity<Customer> deposit(@RequestBody Deposit deposit) {
-//
-//        customerService.deposit(deposit);
-//        Optional<Customer> updateCustomer = customerService.findById(deposit.getCustomer().getId());
-//
-//        return new ResponseEntity<>(updateCustomer.get(), HttpStatus.OK);
-//    }
-
-    @PatchMapping("/deposits/{customerId}")
-    public ResponseEntity<?> deposit(@PathVariable String customerId, @RequestBody DepositReqDTO depositReqDTO, BindingResult bindingResult) {
+    @PatchMapping("/edit/{customerId}")
+    public ResponseEntity<?> update(@PathVariable String customerId, @RequestBody CustomerReqDTO customerReqDTO, BindingResult bindingResult) {
+        LocationRegionReqDTO locationRegionReqDTO = customerReqDTO.getLocationRegionReqDTO();
 
         if (!validateUtils.isNumberValid(customerId)) {
-            throw new DataInputException("Mã khách hàng nộp tiền không hợp lệ");
+            throw new DataInputException("Mã khách hàng không hợp lệ");
         }
-        new DepositReqDTO().validate(depositReqDTO, bindingResult);
+
+        new CustomerReqDTO().validate(customerReqDTO, bindingResult);
 
         if (bindingResult.hasFieldErrors()) {
             return appUtils.mapErrorToResponse(bindingResult);
         }
+
         Long id = Long.parseLong(customerId);
 
-        Optional<Customer> customerOptional = customerService.findById(id);
+        Optional<CustomerDTO> customerOptional = customerService.findCustomerDTOById(id);
 
         if (!customerOptional.isPresent()) {
-            throw new DataInputException("Mã khách hàng nộp tiền không tồn tại");
-        }
-        Customer customer = customerOptional.get();
-
-
-        BigDecimal newBalance = customer.getBalance().add(depositReqDTO.getTransactionAmount());
-
-        if(newBalance.toString().length() > 12) {
-            throw new DataInputException("Vượt quá định mức cho phép. Tổng tiền gửi nhỏ hơn 13 số");
+            throw new DataInputException("Mã khách hàng không tồn tại");
         }
 
-        customer.setBalance(newBalance);
+        CustomerDTO customerDTO = customerOptional.get();
 
-        customerService.save(customer);
-        CustomerResDTO customerResDTO = customer.toCustomerResDTO();
+        CustomerResDTO customerResDTO = customerService.saveUpdatedCustomerFromDTO(customerReqDTO, customerDTO);
 
-        Deposit deposit = depositReqDTO.toDeposit(null, customerResDTO);
-        depositService.save(deposit);
+        return new ResponseEntity<>(customerResDTO, HttpStatus.OK);
+    }
 
-        return new ResponseEntity<>(deposit, HttpStatus.OK);
+
+
+    @PostMapping("/deposit")
+    public ResponseEntity<?> deposit(@RequestBody DepositReqDTO depositReqDTO) {
+
+        if (depositReqDTO.getCustomerId() == null || depositReqDTO.getCustomerId().length() == 0) {
+            throw new DataInputException("Vui lòng nhập mã khách hàng");
+        }
+
+        if (depositReqDTO.getTransactionAmount() == null || depositReqDTO.getTransactionAmount().length() == 0) {
+            throw new DataInputException("Vui lòng nhập số tiền giao dịch");
+        }
+
+        if (!ValidateUtils.isNumberValid(depositReqDTO.getCustomerId())) {
+            throw new DataInputException("Vui lòng nhập mã khách hàng bằng ký tự số");
+        }
+
+        if (!ValidateUtils.isNumberValid(depositReqDTO.getTransactionAmount())) {
+            throw new DataInputException("Vui lòng nhập số tiền giao dịch bằng ký tự số");
+        }
+
+        Long customerId = Long.parseLong(depositReqDTO.getCustomerId());
+
+        Customer customer = customerService.findById(customerId).orElseThrow(() -> {
+            throw new DataInputException("Mã khách hàng không tồn tại");
+        });
+
+        BigDecimal transactionAmount = BigDecimal.valueOf(Long.parseLong(depositReqDTO.getTransactionAmount()));
+
+        Deposit deposit = new Deposit();
+        deposit.setCustomer(customer);
+        deposit.setTransactionAmount(transactionAmount);
+
+        customerService.deposit(deposit);
+        Optional<Customer> updateCustomer = customerService.findById(deposit.getCustomer().getId());
+
+        return new ResponseEntity<>(updateCustomer.get().toCustomerResDTO(), HttpStatus.OK);
     }
 }

@@ -61,7 +61,7 @@ public class Customer extends BaseEntity {
                 .setEmail(email)
                 .setPhone(phone)
                 .setBalance(balance)
-                .setLocationRegionResDTO(locationRegion.toLocationRegionResDTO())
+                .setLocationRegion(locationRegion.toLocationRegionResDTO())
                 ;
 
     }
